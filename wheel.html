@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Wheel - SpinToWin</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/wheel.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="app.html" class="logo">SpinToWin</a>
+      <nav class="nav">
+        <button id="save-btn" class="btn btn-primary" disabled>Save</button>
+        <a href="app.html" class="btn btn-secondary">Back</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wheel-editor">
+    <div class="editor-layout">
+      <!-- Wheel Preview -->
+      <section class="wheel-preview-section">
+        <div class="wheel-container">
+          <canvas id="wheel-canvas" width="500" height="500"></canvas>
+          <button id="test-spin-btn" class="spin-button">SPIN</button>
+        </div>
+      </section>
+
+      <!-- Editor Panel -->
+      <section class="editor-panel">
+        <!-- Tabs -->
+        <div class="editor-tabs">
+          <button class="tab-btn active" data-tab="segments">Segments</button>
+          <button class="tab-btn" data-tab="settings">Settings</button>
+          <button class="tab-btn" data-tab="share">Share</button>
+          <button class="tab-btn" data-tab="analytics">Analytics</button>
+        </div>
+
+        <!-- Segments Tab -->
+        <div id="segments-tab" class="tab-content active">
+          <div class="panel-header">
+            <input type="text" id="wheel-name" class="wheel-name-input" placeholder="Wheel Name">
+          </div>
+
+          <div id="segments-list" class="segments-list"></div>
+
+          <button id="add-segment-btn" class="btn btn-secondary btn-full">+ Add Segment</button>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content hidden">
+          <h3>Spin Settings</h3>
+
+          <div class="form-group">
+            <label for="spin-duration">Spin Duration (seconds)</label>
+            <input type="number" id="spin-duration" min="1" max="20" value="5">
+          </div>
+
+          <div class="form-group">
+            <label for="min-rotations">Min Rotations</label>
+            <input type="number" id="min-rotations" min="1" max="20" value="5">
+          </div>
+
+          <div class="form-group">
+            <label for="max-rotations">Max Rotations</label>
+            <input type="number" id="max-rotations" min="1" max="30" value="10">
+          </div>
+
+          <h3>Appearance</h3>
+
+          <div class="form-group">
+            <label for="border-color">Border Color</label>
+            <input type="color" id="border-color" value="#333333">
+          </div>
+
+          <div class="form-group">
+            <label for="font-size">Font Size</label>
+            <input type="number" id="font-size" min="10" max="24" value="14">
+          </div>
+        </div>
+
+        <!-- Share Tab -->
+        <div id="share-tab" class="tab-content hidden">
+          <h3>Share Your Wheel</h3>
+
+          <div class="form-group">
+            <label for="visibility">Visibility</label>
+            <select id="visibility">
+              <option value="private">Private (only you)</option>
+              <option value="unlisted">Unlisted (anyone with link)</option>
+              <option value="public">Public</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="allow-anonymous" checked>
+              Allow anonymous spins
+            </label>
+          </div>
+
+          <div id="share-url-section" class="share-url-section hidden">
+            <label>Share URL</label>
+            <div class="share-url-group">
+              <input type="text" id="share-url" readonly>
+              <button id="copy-url-btn" class="btn btn-secondary">Copy</button>
+            </div>
+            <a id="open-spin-link" href="#" target="_blank" class="btn btn-primary btn-full">Open Spin Page</a>
+          </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="tab-content hidden">
+          <h3>Analytics</h3>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div id="total-spins" class="stat-value">0</div>
+              <div class="stat-label">Total Spins</div>
+            </div>
+            <div class="stat-card">
+              <div id="unique-spinners" class="stat-value">0</div>
+              <div class="stat-label">Unique Spinners</div>
+            </div>
+          </div>
+
+          <h4>Result Distribution</h4>
+          <div id="distribution-chart" class="distribution-chart"></div>
+
+          <h4>Recent Spins</h4>
+          <div id="recent-spins" class="recent-spins"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Segment Edit Modal -->
+  <div id="segment-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2 id="segment-modal-title">Add Segment</h2>
+
+      <div class="form-group">
+        <label for="segment-label">Label</label>
+        <input type="text" id="segment-label" required placeholder="e.g., Pizza" maxlength="50">
+      </div>
+
+      <div class="form-group">
+        <label for="segment-color">Color</label>
+        <input type="color" id="segment-color" value="#FF6384">
+      </div>
+
+      <div class="form-group">
+        <label for="segment-weight">Weight (1-100)</label>
+        <input type="number" id="segment-weight" min="1" max="100" value="1">
+        <small>Higher weight = more likely to land on</small>
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancel-segment" class="btn btn-secondary">Cancel</button>
+        <button id="save-segment" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+  <script src="js/config/firebase-config.js"></script>
+  <script src="js/services/auth-service.js"></script>
+  <script src="js/services/wheel-service.js"></script>
+  <script src="js/services/analytics-service.js"></script>
+  <script src="js/services/share-service.js"></script>
+  <script src="js/components/wheel-canvas.js"></script>
+  <script src="js/components/wheel-spinner.js"></script>
+  <script src="js/components/toast.js"></script>
+  <script src="js/pages/wheel-edit.js"></script>
+</body>
+</html>

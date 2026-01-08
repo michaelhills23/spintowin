@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spin the Wheel - SpinToWin</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/wheel.css">
+</head>
+<body class="spin-page">
+  <header class="header header-minimal">
+    <div class="container header-content">
+      <a href="index.html" class="logo">SpinToWin</a>
+      <nav class="nav">
+        <a href="login.html" class="btn btn-secondary">Create Your Own</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="spin-main">
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading wheel...</p>
+    </div>
+
+    <div id="error-state" class="error-state hidden">
+      <h2>Wheel Not Found</h2>
+      <p>This wheel may have been deleted or the link is invalid.</p>
+      <a href="index.html" class="btn btn-primary">Go Home</a>
+    </div>
+
+    <div id="spin-content" class="spin-content hidden">
+      <h1 id="wheel-title" class="wheel-title"></h1>
+
+      <div class="spin-wheel-container">
+        <canvas id="wheel-canvas" width="500" height="500"></canvas>
+        <button id="spin-btn" class="spin-button spin-button-large">SPIN</button>
+      </div>
+
+      <div id="result-display" class="result-display hidden">
+        <h2>Result:</h2>
+        <div id="result-text" class="result-text"></div>
+        <button id="spin-again-btn" class="btn btn-primary">Spin Again</button>
+      </div>
+
+      <div class="recent-results">
+        <h3>Recent Results</h3>
+        <div id="recent-list" class="recent-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Result Modal -->
+  <div id="result-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content result-modal-content">
+      <div id="result-confetti" class="confetti-container"></div>
+      <h2>You got:</h2>
+      <div id="modal-result" class="modal-result"></div>
+      <button id="close-result" class="btn btn-primary btn-large">Spin Again!</button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+  <script src="js/config/firebase-config.js"></script>
+  <script src="js/services/wheel-service.js"></script>
+  <script src="js/services/analytics-service.js"></script>
+  <script src="js/components/wheel-canvas.js"></script>
+  <script src="js/components/wheel-spinner.js"></script>
+  <script src="js/components/toast.js"></script>
+  <script src="js/pages/spin-public.js"></script>
+</body>
+</html>

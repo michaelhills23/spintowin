@@ -1,0 +1,480 @@
+/* Wheel Canvas Styles */
+.wheel-container {
+  position: relative;
+  display: inline-block;
+}
+
+.wheel-container canvas {
+  display: block;
+}
+
+/* Spin Button */
+.spin-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  border: 4px solid white;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all var(--transition);
+  z-index: 10;
+}
+
+.spin-button:hover:not(:disabled) {
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.spin-button:active:not(:disabled) {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+.spin-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spin-button-large {
+  width: 100px;
+  height: 100px;
+  font-size: 1.25rem;
+}
+
+/* Wheel Editor Layout */
+.wheel-editor {
+  min-height: calc(100vh - 60px);
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  min-height: calc(100vh - 60px);
+}
+
+.wheel-preview-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--bg);
+}
+
+.editor-panel {
+  background: var(--bg-light);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  max-height: calc(100vh - 60px);
+}
+
+/* Editor Tabs */
+.editor-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 1rem 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--transition);
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+}
+
+.tab-btn.active {
+  color: var(--primary-light);
+  border-bottom-color: var(--primary);
+}
+
+.tab-content {
+  padding: 1.5rem;
+}
+
+/* Wheel Name Input */
+.wheel-name-input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.wheel-name-input:hover {
+  background: var(--bg);
+}
+
+.wheel-name-input:focus {
+  outline: none;
+  background: var(--bg);
+  border-color: var(--primary);
+}
+
+/* Segments List */
+.segments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.segment-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.segment-color {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.segment-label {
+  flex: 1;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.segment-weight {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--border);
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+}
+
+.segment-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.segment-actions button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.segment-actions button:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.segment-actions .delete-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Share URL Section */
+.share-url-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.share-url-group {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.share-url-group input {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--bg);
+  padding: 1rem;
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-light);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Distribution Chart */
+.distribution-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.distribution-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.distribution-bar .bar-label {
+  width: 80px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.distribution-bar .bar-track {
+  flex: 1;
+  height: 20px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.distribution-bar .bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.distribution-bar .bar-value {
+  width: 40px;
+  font-size: 0.75rem;
+  text-align: right;
+  color: var(--text-muted);
+}
+
+/* Recent Spins */
+.recent-spins {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.recent-spin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+
+.recent-spin-item:last-child {
+  border-bottom: none;
+}
+
+.recent-spin-result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recent-spin-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.recent-spin-time {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* Public Spin Page */
+.spin-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.spin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.spin-content {
+  text-align: center;
+  width: 100%;
+  max-width: 600px;
+}
+
+.wheel-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.75rem;
+}
+
+.spin-wheel-container {
+  margin-bottom: 2rem;
+}
+
+/* Result Display */
+.result-display {
+  background: var(--bg-card);
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  margin-bottom: 2rem;
+}
+
+.result-display h2 {
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.result-text {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-light);
+  margin-bottom: 1rem;
+}
+
+/* Recent Results */
+.recent-results {
+  text-align: left;
+  width: 100%;
+  background: var(--bg-card);
+  padding: 1rem;
+  border-radius: var(--radius);
+}
+
+.recent-results h3 {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.recent-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+/* Result Modal */
+.result-modal-content {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.result-modal-content h2 {
+  color: var(--text-muted);
+  font-size: 1.25rem;
+}
+
+.modal-result {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary-light);
+  margin: 1rem 0 2rem;
+}
+
+/* Error State */
+.error-state {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.error-state h2 {
+  margin-bottom: 0.5rem;
+}
+
+.error-state p {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wheel-preview-section {
+    padding: 1rem;
+  }
+
+  .wheel-preview-section canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .editor-panel {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: none;
+  }
+}
+
+@media (max-width: 500px) {
+  .spin-button {
+    width: 60px;
+    height: 60px;
+    font-size: 0.75rem;
+  }
+
+  .spin-button-large {
+    width: 80px;
+    height: 80px;
+    font-size: 1rem;
+  }
+}

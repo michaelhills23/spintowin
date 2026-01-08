@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spin to Win Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Outfit', sans-serif; }
+    @keyframes confettiFall {
+      0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Storage helper using localStorage
+    const storage = {
+      get: (key) => {
+        try {
+          const value = localStorage.getItem(key);
+          return value ? { value } : null;
+        } catch (e) { return null; }
+      },
+      set: (key, value) => {
+        try {
+          localStorage.setItem(key, value);
+          return { key, value };
+        } catch (e) { return null; }
+      }
+    };
+
+    const STORAGE_KEY = 'spinwheels_data';
+    const generateId = () => Math.random().toString(36).substring(2, 10);
+
+    const SEGMENT_COLORS = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+      '#F8B500', '#FF8C42', '#6C5CE7', '#00B894', '#E84393'
+    ];
+
+    function SpinWheelAdmin() {
+      const [wheels, setWheels] = useState([]);
+      const [currentView, setCurrentView] = useState('list');
+      const [editingWheel, setEditingWheel] = useState(null);
+      const [playingWheelId, setPlayingWheelId] = useState(null);
+      const [notification, setNotification] = useState(null);
+
+      useEffect(() => {
+        const result = storage.get(STORAGE_KEY);
+        if (result && result.value) {
+          setWheels(JSON.parse(result.value));
+        }
+      }, []);
+
+      const saveWheels = (newWheels) => {
+        storage.set(STORAGE_KEY, JSON.stringify(newWheels));
+        setWheels(newWheels);
+      };
+
+      const showNotification = (message, type = 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 3000);
+      };
+
+      useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const wheelId = urlParams.get('wheel');
+        if (wheelId && wheels.length > 0) {
+          const wheel = wheels.find(w => w.id === wheelId);
+          if (wheel) {
+            setPlayingWheelId(wheelId);
+            setCurrentView('play');
+          }
+        }
+      }, [wheels]);
+
+      const createNewWheel = () => {
+        const newWheel = {
+          id: generateId(),
+          name: 'New Wheel',
+          segments: [
+            { id: generateId(), label: 'Prize 1', probability: 25, successMessage: 'You won Prize 1!', claimUrl: '', claimButtonText: 'Claim Prize' },
+            { id: generateId(), label: 'Prize 2', probability: 25, successMessage: 'You won Prize 2!', claimUrl: '', claimButtonText: 'Claim Prize' },
+            { id: generateId(), label: 'Try Again', probability: 50, successMessage: 'Better luck next time!', claimUrl: '', claimButtonText: '' },
+          ],
+          settings: {
+            spinDuration: 5,
+            backgroundColor: '#1a1a2e',
+            textColor: '#ffffff',
+            pointerColor: '#FFD700',
+            centerImage: '',
+            spinButtonText: 'SPIN TO WIN!',
+            title: 'Spin & Win!'
+          },
+          createdAt: new Date().toISOString()
+        };
+        setEditingWheel(newWheel);
+        setCurrentView('edit');
+      };
+
+      const editWheel = (wheel) => {
+        setEditingWheel({ ...wheel });
+        setCurrentView('edit');
+      };
+
+      const saveWheel = () => {
+        const existingIndex = wheels.findIndex(w => w.id === editingWheel.id);
+        let newWheels;
+        if (existingIndex >= 0) {
+          newWheels = [...wheels];
+          newWheels[existingIndex] = editingWheel;
+        } else {
+          newWheels = [...wheels, editingWheel];
+        }
+        saveWheels(newWheels);
+        showNotification('Wheel saved successfully!');
+        setCurrentView('list');
+        setEditingWheel(null);
+      };
+
+      const deleteWheel = (wheelId) => {
+        if (confirm('Are you sure you want to delete this wheel?')) {
+          const newWheels = wheels.filter(w => w.id !== wheelId);
+          saveWheels(newWheels);
+          showNotification('Wheel deleted');
+        }
+      };
+
+      const duplicateWheel = (wheel) => {
+        const newWheel = {
+          ...wheel,
+          id: generateId(),
+          name: `${wheel.name} (Copy)`,
+          createdAt: new Date().toISOString()
+        };
+        saveWheels([...wheels, newWheel]);
+        showNotification('Wheel duplicated!');
+      };
+
+      const copyWheelUrl = (wheelId) => {
+        const url = `${window.location.origin}${window.location.pathname}?wheel=${wheelId}`;
+        navigator.clipboard.writeText(url);
+        showNotification('URL copied to clipboard!');
+      };
+
+      const previewWheel = (wheel) => {
+        setPlayingWheelId(wheel.id);
+        setCurrentView('play');
+      };
+
+      if (currentView === 'play') {
+        const wheel = wheels.find(w => w.id === playingWheelId);
+        if (!wheel) {
+          return (
+            <div style={styles.errorContainer}>
+              <h1>Wheel Not Found</h1>
+              <p>This wheel doesn't exist or has been deleted.</p>
+              <button onClick={() => setCurrentView('list')} style={styles.backButton}>
+                ← Back to Admin
+              </button>
+            </div>
+          );
+        }
+        return (
+          <SpinWheel 
+            wheel={wheel} 
+            onBack={() => {
+              setCurrentView('list');
+              window.history.pushState({}, '', window.location.pathname);
+            }} 
+            isAdmin={true}
+          />
+        );
+      }
+
+      if (currentView === 'edit') {
+        return (
+          <WheelEditor
+            wheel={editingWheel}
+            onChange={setEditingWheel}
+            onSave={saveWheel}
+            onCancel={() => {
+              setCurrentView('list');
+              setEditingWheel(null);
+            }}
+            onPreview={() => {
+              const tempWheels = [...wheels];
+              const idx = tempWheels.findIndex(w => w.id === editingWheel.id);
+              if (idx >= 0) {
+                tempWheels[idx] = editingWheel;
+              } else {
+                tempWheels.push(editingWheel);
+              }
+              setWheels(tempWheels);
+              setPlayingWheelId(editingWheel.id);
+              setCurrentView('play');
+            }}
+          />
+        );
+      }
+
+      return (
+        <div style={styles.container}>
+          <div style={styles.header}>
+            <div>
+              <h1 style={styles.title}>🎰 Spin Wheel Admin</h1>
+              <p style={styles.subtitle}>Create and manage your spin-to-win wheels</p>
+            </div>
+            <button onClick={createNewWheel} style={styles.createButton}>
+              + Create New Wheel
+            </button>
+          </div>
+
+          {notification && (
+            <div style={{
+              ...styles.notification,
+              backgroundColor: notification.type === 'error' ? '#ff4444' : '#00c851'
+            }}>
+              {notification.message}
+            </div>
+          )}
+
+          {wheels.length === 0 ? (
+            <div style={styles.emptyState}>
+              <div style={styles.emptyIcon}>🎡</div>
+              <h2>No Wheels Yet</h2>
+              <p>Create your first spin-to-win wheel to get started!</p>
+              <button onClick={createNewWheel} style={styles.createButton}>
+                Create Your First Wheel
+              </button>
+            </div>
+          ) : (
+            <div style={styles.wheelGrid}>
+              {wheels.map(wheel => (
+                <WheelCard
+                  key={wheel.id}
+                  wheel={wheel}
+                  onEdit={() => editWheel(wheel)}
+                  onDelete={() => deleteWheel(wheel.id)}
+                  onDuplicate={() => duplicateWheel(wheel)}
+                  onCopyUrl={() => copyWheelUrl(wheel.id)}
+                  onPreview={() => previewWheel(wheel)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function WheelCard({ wheel, onEdit, onDelete, onDuplicate, onCopyUrl, onPreview }) {
+      return (
+        <div style={styles.card}>
+          <div style={styles.cardPreview}>
+            <MiniWheel segments={wheel.segments} />
+          </div>
+          <div style={styles.cardContent}>
+            <h3 style={styles.cardTitle}>{wheel.name}</h3>
+            <p style={styles.cardMeta}>
+              {wheel.segments.length} segments • Created {new Date(wheel.createdAt).toLocaleDateString()}
+            </p>
+            <div style={styles.cardActions}>
+              <button onClick={onPreview} style={styles.actionButton} title="Preview">👁️</button>
+              <button onClick={onEdit} style={styles.actionButton} title="Edit">✏️</button>
+              <button onClick={onDuplicate} style={styles.actionButton} title="Duplicate">📋</button>
+              <button onClick={onCopyUrl} style={styles.actionButton} title="Copy URL">🔗</button>
+              <button onClick={onDelete} style={{...styles.actionButton, ...styles.deleteButton}} title="Delete">🗑️</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function MiniWheel({ segments }) {
+      const total = segments.reduce((sum, s) => sum + s.probability, 0);
+      let currentAngle = 0;
+
+      return (
+        <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
+          {segments.map((segment, index) => {
+            const angle = (segment.probability / total) * 360;
+            const startAngle = currentAngle;
+            const endAngle = currentAngle + angle;
+            currentAngle = endAngle;
+
+            const startRad = (startAngle - 90) * (Math.PI / 180);
+            const endRad = (endAngle - 90) * (Math.PI / 180);
+
+            const x1 = 50 + 45 * Math.cos(startRad);
+            const y1 = 50 + 45 * Math.sin(startRad);
+            const x2 = 50 + 45 * Math.cos(endRad);
+            const y2 = 50 + 45 * Math.sin(endRad);
+
+            const largeArc = angle > 180 ? 1 : 0;
+
+            return (
+              <path
+                key={segment.id}
+                d={`M 50 50 L ${x1} ${y1} A 45 45 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                fill={SEGMENT_COLORS[index % SEGMENT_COLORS.length]}
+              />
+            );
+          })}
+          <circle cx="50" cy="50" r="8" fill="#1a1a2e" />
+        </svg>
+      );
+    }
+
+    function WheelEditor({ wheel, onChange, onSave, onCancel, onPreview }) {
+      const updateSegment = (segmentId, field, value) => {
+        const newSegments = wheel.segments.map(s =>
+          s.id === segmentId ? { ...s, [field]: value } : s
+        );
+        onChange({ ...wheel, segments: newSegments });
+      };
+
+      const addSegment = () => {
+        const newSegment = {
+          id: generateId(),
+          label: `Prize ${wheel.segments.length + 1}`,
+          probability: 10,
+          successMessage: `You won Prize ${wheel.segments.length + 1}!`,
+          claimUrl: '',
+          claimButtonText: 'Claim Prize'
+        };
+        onChange({ ...wheel, segments: [...wheel.segments, newSegment] });
+      };
+
+      const removeSegment = (segmentId) => {
+        if (wheel.segments.length <= 2) {
+          alert('Wheel must have at least 2 segments');
+          return;
+        }
+        onChange({ ...wheel, segments: wheel.segments.filter(s => s.id !== segmentId) });
+      };
+
+      const updateSettings = (field, value) => {
+        onChange({ ...wheel, settings: { ...wheel.settings, [field]: value } });
+      };
+
+      const totalProbability = wheel.segments.reduce((sum, s) => sum + Number(s.probability), 0);
+
+      return (
+        <div style={styles.editorContainer}>
+          <div style={styles.editorHeader}>
+            <button onClick={onCancel} style={styles.backButton}>← Back</button>
+            <h1 style={styles.editorTitle}>Edit Wheel</h1>
+            <div style={styles.editorActions}>
+              <button onClick={onPreview} style={styles.previewButton}>Preview</button>
+              <button onClick={onSave} style={styles.saveButton}>Save Wheel</button>
+            </div>
+          </div>
+
+          <div style={styles.editorContent}>
+            <div style={styles.editorSidebar}>
+              <div style={styles.editorSection}>
+                <h3 style={styles.sectionTitle}>Wheel Settings</h3>
+                
+                <label style={styles.label}>
+                  Wheel Name
+                  <input
+                    type="text"
+                    value={wheel.name}
+                    onChange={(e) => onChange({ ...wheel, name: e.target.value })}
+                    style={styles.input}
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Display Title
+                  <input
+                    type="text"
+                    value={wheel.settings.title}
+                    onChange={(e) => updateSettings('title', e.target.value)}
+                    style={styles.input}
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Spin Button Text
+                  <input
+                    type="text"
+                    value={wheel.settings.spinButtonText}
+                    onChange={(e) => updateSettings('spinButtonText', e.target.value)}
+                    style={styles.input}
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Spin Duration (seconds)
+                  <input
+                    type="number"
+                    min="2"
+                    max="10"
+                    value={wheel.settings.spinDuration}
+                    onChange={(e) => updateSettings('spinDuration', Number(e.target.value))}
+                    style={styles.input}
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Background Color
+                  <div style={styles.colorInputWrapper}>
+                    <input
+                      type="color"
+                      value={wheel.settings.backgroundColor}
+                      onChange={(e) => updateSettings('backgroundColor', e.target.value)}
+                      style={styles.colorInput}
+                    />
+                    <input
+                      type="text"
+                      value={wheel.settings.backgroundColor}
+                      onChange={(e) => updateSettings('backgroundColor', e.target.value)}
+                      style={styles.colorTextInput}
+                    />
+                  </div>
+                </label>
+
+                <label style={styles.label}>
+                  Pointer Color
+                  <div style={styles.colorInputWrapper}>
+                    <input
+                      type="color"
+                      value={wheel.settings.pointerColor}
+                      onChange={(e) => updateSettings('pointerColor', e.target.value)}
+                      style={styles.colorInput}
+                    />
+                    <input
+                      type="text"
+                      value={wheel.settings.pointerColor}
+                      onChange={(e) => updateSettings('pointerColor', e.target.value)}
+                      style={styles.colorTextInput}
+                    />
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div style={styles.editorMain}>
+              <div style={styles.segmentsHeader}>
+                <h3 style={styles.sectionTitle}>Wheel Segments</h3>
+                <div style={styles.probabilityIndicator}>
+                  Total Probability: 
+                  <span style={{ 
+                    color: totalProbability === 100 ? '#00c851' : '#ff4444',
+                    fontWeight: 'bold',
+                    marginLeft: '8px'
+                  }}>
+                    {totalProbability}%
+                  </span>
+                  {totalProbability !== 100 && (
+                    <span style={{ color: '#ff4444', marginLeft: '8px', fontSize: '12px' }}>
+                      (Should equal 100%)
+                    </span>
+                  )}
+                </div>
+                <button onClick={addSegment} style={styles.addButton}>+ Add Segment</button>
+              </div>
+
+              <div style={styles.segmentsList}>
+                {wheel.segments.map((segment, index) => (
+                  <div key={segment.id} style={styles.segmentCard}>
+                    <div style={styles.segmentColorBar}>
+                      <div style={{
+                        ...styles.colorIndicator,
+                        backgroundColor: SEGMENT_COLORS[index % SEGMENT_COLORS.length]
+                      }} />
+                      <span style={styles.segmentNumber}>#{index + 1}</span>
+                    </div>
+                    
+                    <div style={styles.segmentFields}>
+                      <div style={styles.segmentRow}>
+                        <label style={styles.segmentLabel}>
+                          Label
+                          <input
+                            type="text"
+                            value={segment.label}
+                            onChange={(e) => updateSegment(segment.id, 'label', e.target.value)}
+                            style={styles.segmentInput}
+                            placeholder="e.g., 10% Off"
+                          />
+                        </label>
+                        <label style={styles.segmentLabel}>
+                          Probability (%)
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={segment.probability}
+                            onChange={(e) => updateSegment(segment.id, 'probability', Number(e.target.value))}
+                            style={{...styles.segmentInput, width: '80px'}}
+                          />
+                        </label>
+                      </div>
+
+                      <label style={styles.segmentLabel}>
+                        Success Message
+                        <textarea
+                          value={segment.successMessage}
+                          onChange={(e) => updateSegment(segment.id, 'successMessage', e.target.value)}
+                          style={styles.textarea}
+                          placeholder="Congratulations! You've won..."
+                          rows={2}
+                        />
+                      </label>
+
+                      <div style={styles.segmentRow}>
+                        <label style={styles.segmentLabel}>
+                          Claim URL (leave empty for no button)
+                          <input
+                            type="url"
+                            value={segment.claimUrl}
+                            onChange={(e) => updateSegment(segment.id, 'claimUrl', e.target.value)}
+                            style={styles.segmentInput}
+                            placeholder="https://example.com/claim"
+                          />
+                        </label>
+                        <label style={styles.segmentLabel}>
+                          Button Text
+                          <input
+                            type="text"
+                            value={segment.claimButtonText}
+                            onChange={(e) => updateSegment(segment.id, 'claimButtonText', e.target.value)}
+                            style={{...styles.segmentInput, width: '150px'}}
+                            placeholder="Claim Prize"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => removeSegment(segment.id)}
+                      style={styles.removeSegmentButton}
+                      title="Remove segment"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={styles.previewPanel}>
+              <h3 style={styles.sectionTitle}>Live Preview</h3>
+              <div style={{
+                ...styles.miniPreview,
+                backgroundColor: wheel.settings.backgroundColor
+              }}>
+                <MiniWheel segments={wheel.segments} />
+              </div>
+              <div style={styles.previewLabels}>
+                {wheel.segments.map((segment, index) => (
+                  <div key={segment.id} style={styles.previewLabel}>
+                    <span style={{
+                      ...styles.previewDot,
+                      backgroundColor: SEGMENT_COLORS[index % SEGMENT_COLORS.length]
+                    }} />
+                    <span>{segment.label}</span>
+                    <span style={styles.previewProb}>{segment.probability}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function SpinWheel({ wheel, onBack, isAdmin }) {
+      const [spinning, setSpinning] = useState(false);
+      const [result, setResult] = useState(null);
+      const [rotation, setRotation] = useState(0);
+      const [showConfetti, setShowConfetti] = useState(false);
+      const wheelRef = useRef(null);
+
+      const spinWheel = () => {
+        if (spinning) return;
+
+        setSpinning(true);
+        setResult(null);
+        setShowConfetti(false);
+
+        const total = wheel.segments.reduce((sum, s) => sum + s.probability, 0);
+        const random = Math.random() * total;
+        let cumulative = 0;
+        let winningIndex = 0;
+
+        for (let i = 0; i < wheel.segments.length; i++) {
+          cumulative += wheel.segments[i].probability;
+          if (random <= cumulative) {
+            winningIndex = i;
+            break;
+          }
+        }
+
+        const winningSegment = wheel.segments[winningIndex];
+
+        let segmentStart = 0;
+        for (let i = 0; i < winningIndex; i++) {
+          segmentStart += (wheel.segments[i].probability / total) * 360;
+        }
+        const segmentAngle = (winningSegment.probability / total) * 360;
+        const segmentMiddle = segmentStart + segmentAngle / 2;
+
+        const fullSpins = 5 + Math.floor(Math.random() * 3);
+        const targetAngle = 360 - segmentMiddle + 90;
+        const finalRotation = rotation + (fullSpins * 360) + targetAngle + (Math.random() * segmentAngle * 0.6 - segmentAngle * 0.3);
+
+        setRotation(finalRotation);
+
+        setTimeout(() => {
+          setSpinning(false);
+          setResult(winningSegment);
+          if (winningSegment.claimUrl) {
+            setShowConfetti(true);
+          }
+        }, wheel.settings.spinDuration * 1000);
+      };
+
+      const total = wheel.segments.reduce((sum, s) => sum + s.probability, 0);
+
+      return (
+        <div style={{
+          ...styles.playContainer,
+          backgroundColor: wheel.settings.backgroundColor
+        }}>
+          {showConfetti && <Confetti />}
+          
+          {isAdmin && (
+            <button onClick={onBack} style={styles.backToAdmin}>
+              ← Back to Admin
+            </button>
+          )}
+
+          <h1 style={styles.playTitle}>{wheel.settings.title}</h1>
+
+          <div style={styles.wheelContainer}>
+            <div style={{
+              ...styles.pointer,
+              borderBottomColor: wheel.settings.pointerColor
+            }} />
+
+            <svg
+              ref={wheelRef}
+              viewBox="0 0 400 400"
+              style={{
+                ...styles.wheel,
+                transform: `rotate(${rotation}deg)`,
+                transition: spinning 
+                  ? `transform ${wheel.settings.spinDuration}s cubic-bezier(0.17, 0.67, 0.12, 0.99)` 
+                  : 'none'
+              }}
+            >
+              <circle cx="200" cy="200" r="195" fill="none" stroke="#FFD700" strokeWidth="8" />
+              
+              {wheel.segments.map((segment, index) => {
+                let startAngle = 0;
+                for (let i = 0; i < index; i++) {
+                  startAngle += (wheel.segments[i].probability / total) * 360;
+                }
+                const angle = (segment.probability / total) * 360;
+                const endAngle = startAngle + angle;
+
+                const startRad = (startAngle - 90) * (Math.PI / 180);
+                const endRad = (endAngle - 90) * (Math.PI / 180);
+
+                const x1 = 200 + 185 * Math.cos(startRad);
+                const y1 = 200 + 185 * Math.sin(startRad);
+                const x2 = 200 + 185 * Math.cos(endRad);
+                const y2 = 200 + 185 * Math.sin(endRad);
+
+                const largeArc = angle > 180 ? 1 : 0;
+
+                const midAngle = startAngle + angle / 2;
+                const midRad = (midAngle - 90) * (Math.PI / 180);
+                const textX = 200 + 120 * Math.cos(midRad);
+                const textY = 200 + 120 * Math.sin(midRad);
+
+                return (
+                  <g key={segment.id}>
+                    <path
+                      d={`M 200 200 L ${x1} ${y1} A 185 185 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                      fill={SEGMENT_COLORS[index % SEGMENT_COLORS.length]}
+                      stroke="#fff"
+                      strokeWidth="2"
+                    />
+                    <text
+                      x={textX}
+                      y={textY}
+                      fill="#fff"
+                      fontSize="14"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      transform={`rotate(${midAngle}, ${textX}, ${textY})`}
+                      style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}
+                    >
+                      {segment.label.length > 12 ? segment.label.substring(0, 12) + '...' : segment.label}
+                    </text>
+                  </g>
+                );
+              })}
+
+              <circle cx="200" cy="200" r="30" fill={wheel.settings.backgroundColor} stroke="#FFD700" strokeWidth="4" />
+              <circle cx="200" cy="200" r="15" fill="#FFD700" />
+            </svg>
+          </div>
+
+          {!result && (
+            <button
+              onClick={spinWheel}
+              disabled={spinning}
+              style={{
+                ...styles.spinButton,
+                opacity: spinning ? 0.6 : 1,
+                cursor: spinning ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {spinning ? '🎰 Spinning...' : wheel.settings.spinButtonText}
+            </button>
+          )}
+
+          {result && (
+            <div style={styles.resultModal}>
+              <div style={styles.resultContent}>
+                <div style={styles.resultEmoji}>🎉</div>
+                <h2 style={styles.resultTitle}>{result.label}</h2>
+                <p style={styles.resultMessage}>{result.successMessage}</p>
+                {result.claimUrl && result.claimButtonText && (
+                  <button
+                    onClick={() => window.open(result.claimUrl, '_blank', 'noopener,noreferrer')}
+                    style={styles.claimButton}
+                  >
+                    {result.claimButtonText}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setResult(null);
+                    setShowConfetti(false);
+                  }}
+                  style={styles.spinAgainButton}
+                >
+                  Spin Again
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function Confetti() {
+      const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#DDA0DD'];
+      const pieces = Array.from({ length: 50 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 0.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 8 + Math.random() * 8
+      }));
+
+      return (
+        <div style={styles.confettiContainer}>
+          {pieces.map(piece => (
+            <div
+              key={piece.id}
+              style={{
+                ...styles.confettiPiece,
+                left: `${piece.left}%`,
+                animationDelay: `${piece.delay}s`,
+                backgroundColor: piece.color,
+                width: piece.size,
+                height: piece.size
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    const styles = {
+      container: {
+        minHeight: '100vh',
+        backgroundColor: '#0f0f1a',
+        color: '#fff',
+        fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif",
+        padding: '40px'
+      },
+      header: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '40px',
+        maxWidth: '1400px',
+        margin: '0 auto 40px',
+        flexWrap: 'wrap',
+        gap: '20px'
+      },
+      title: {
+        fontSize: '36px',
+        fontWeight: '800',
+        margin: 0,
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent'
+      },
+      subtitle: {
+        color: '#888',
+        marginTop: '8px'
+      },
+      createButton: {
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        color: '#000',
+        border: 'none',
+        padding: '14px 28px',
+        borderRadius: '12px',
+        fontSize: '16px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)'
+      },
+      notification: {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        padding: '16px 24px',
+        borderRadius: '12px',
+        color: '#fff',
+        fontWeight: '600',
+        zIndex: 1000,
+        animation: 'slideIn 0.3s ease'
+      },
+      emptyState: {
+        textAlign: 'center',
+        padding: '80px 20px',
+        backgroundColor: '#1a1a2e',
+        borderRadius: '20px',
+        maxWidth: '500px',
+        margin: '0 auto'
+      },
+      emptyIcon: {
+        fontSize: '80px',
+        marginBottom: '20px'
+      },
+      wheelGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+        gap: '24px',
+        maxWidth: '1400px',
+        margin: '0 auto'
+      },
+      card: {
+        backgroundColor: '#1a1a2e',
+        borderRadius: '20px',
+        overflow: 'hidden',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        border: '1px solid #2a2a4e'
+      },
+      cardPreview: {
+        height: '200px',
+        padding: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#12121f'
+      },
+      cardContent: {
+        padding: '20px'
+      },
+      cardTitle: {
+        margin: '0 0 8px',
+        fontSize: '20px',
+        fontWeight: '700'
+      },
+      cardMeta: {
+        color: '#888',
+        fontSize: '14px',
+        margin: '0 0 16px'
+      },
+      cardActions: {
+        display: 'flex',
+        gap: '8px'
+      },
+      actionButton: {
+        flex: 1,
+        padding: '10px',
+        border: 'none',
+        borderRadius: '8px',
+        backgroundColor: '#2a2a4e',
+        cursor: 'pointer',
+        fontSize: '18px',
+        transition: 'background-color 0.2s'
+      },
+      deleteButton: {
+        backgroundColor: 'rgba(255, 68, 68, 0.2)'
+      },
+      editorContainer: {
+        minHeight: '100vh',
+        backgroundColor: '#0f0f1a',
+        color: '#fff',
+        fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif"
+      },
+      editorHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '20px 40px',
+        borderBottom: '1px solid #2a2a4e',
+        backgroundColor: '#1a1a2e',
+        flexWrap: 'wrap',
+        gap: '16px'
+      },
+      backButton: {
+        background: 'none',
+        border: '1px solid #444',
+        color: '#fff',
+        padding: '10px 20px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px'
+      },
+      editorTitle: {
+        margin: 0,
+        fontSize: '24px',
+        fontWeight: '700'
+      },
+      editorActions: {
+        display: 'flex',
+        gap: '12px'
+      },
+      previewButton: {
+        background: 'none',
+        border: '1px solid #FFD700',
+        color: '#FFD700',
+        padding: '10px 24px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '600'
+      },
+      saveButton: {
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        border: 'none',
+        color: '#000',
+        padding: '10px 24px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '600'
+      },
+      editorContent: {
+        display: 'grid',
+        gridTemplateColumns: '300px 1fr 280px',
+        gap: '0',
+        minHeight: 'calc(100vh - 81px)'
+      },
+      editorSidebar: {
+        backgroundColor: '#1a1a2e',
+        borderRight: '1px solid #2a2a4e',
+        padding: '24px',
+        overflowY: 'auto'
+      },
+      editorMain: {
+        padding: '24px',
+        overflowY: 'auto'
+      },
+      previewPanel: {
+        backgroundColor: '#1a1a2e',
+        borderLeft: '1px solid #2a2a4e',
+        padding: '24px',
+        overflowY: 'auto'
+      },
+      editorSection: {
+        marginBottom: '24px'
+      },
+      sectionTitle: {
+        fontSize: '14px',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+        color: '#888',
+        marginBottom: '16px'
+      },
+      label: {
+        display: 'block',
+        marginBottom: '16px',
+        fontSize: '14px',
+        color: '#aaa'
+      },
+      input: {
+        width: '100%',
+        padding: '12px',
+        marginTop: '6px',
+        backgroundColor: '#0f0f1a',
+        border: '1px solid #2a2a4e',
+        borderRadius: '8px',
+        color: '#fff',
+        fontSize: '14px',
+        boxSizing: 'border-box'
+      },
+      colorInputWrapper: {
+        display: 'flex',
+        gap: '8px',
+        marginTop: '6px'
+      },
+      colorInput: {
+        width: '50px',
+        height: '40px',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        backgroundColor: 'transparent'
+      },
+      colorTextInput: {
+        flex: 1,
+        padding: '12px',
+        backgroundColor: '#0f0f1a',
+        border: '1px solid #2a2a4e',
+        borderRadius: '8px',
+        color: '#fff',
+        fontSize: '14px'
+      },
+      segmentsHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '20px',
+        marginBottom: '20px',
+        flexWrap: 'wrap'
+      },
+      probabilityIndicator: {
+        flex: 1,
+        fontSize: '14px',
+        color: '#888'
+      },
+      addButton: {
+        background: 'none',
+        border: '1px dashed #4ECDC4',
+        color: '#4ECDC4',
+        padding: '10px 20px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '600'
+      },
+      segmentsList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px'
+      },
+      segmentCard: {
+        backgroundColor: '#1a1a2e',
+        borderRadius: '12px',
+        padding: '20px',
+        position: 'relative',
+        border: '1px solid #2a2a4e'
+      },
+      segmentColorBar: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '16px'
+      },
+      colorIndicator: {
+        width: '24px',
+        height: '24px',
+        borderRadius: '6px'
+      },
+      segmentNumber: {
+        color: '#888',
+        fontSize: '14px',
+        fontWeight: '600'
+      },
+      segmentFields: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      },
+      segmentRow: {
+        display: 'flex',
+        gap: '16px',
+        flexWrap: 'wrap'
+      },
+      segmentLabel: {
+        flex: 1,
+        display: 'block',
+        fontSize: '13px',
+        color: '#888',
+        minWidth: '200px'
+      },
+      segmentInput: {
+        width: '100%',
+        padding: '10px 12px',
+        marginTop: '6px',
+        backgroundColor: '#0f0f1a',
+        border: '1px solid #2a2a4e',
+        borderRadius: '6px',
+        color: '#fff',
+        fontSize: '14px',
+        boxSizing: 'border-box'
+      },
+      textarea: {
+        width: '100%',
+        padding: '10px 12px',
+        marginTop: '6px',
+        backgroundColor: '#0f0f1a',
+        border: '1px solid #2a2a4e',
+        borderRadius: '6px',
+        color: '#fff',
+        fontSize: '14px',
+        resize: 'vertical',
+        fontFamily: 'inherit',
+        boxSizing: 'border-box'
+      },
+      removeSegmentButton: {
+        position: 'absolute',
+        top: '12px',
+        right: '12px',
+        width: '28px',
+        height: '28px',
+        border: 'none',
+        borderRadius: '6px',
+        backgroundColor: 'rgba(255, 68, 68, 0.2)',
+        color: '#ff4444',
+        cursor: 'pointer',
+        fontSize: '18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      },
+      miniPreview: {
+        width: '100%',
+        aspectRatio: '1',
+        borderRadius: '12px',
+        padding: '20px',
+        boxSizing: 'border-box',
+        marginBottom: '20px'
+      },
+      previewLabels: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      },
+      previewLabel: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        fontSize: '13px',
+        padding: '8px',
+        backgroundColor: '#0f0f1a',
+        borderRadius: '6px'
+      },
+      previewDot: {
+        width: '12px',
+        height: '12px',
+        borderRadius: '3px',
+        flexShrink: 0
+      },
+      previewProb: {
+        marginLeft: 'auto',
+        color: '#888',
+        fontSize: '12px'
+      },
+      playContainer: {
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px',
+        position: 'relative',
+        fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif"
+      },
+      backToAdmin: {
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        background: 'rgba(255,255,255,0.1)',
+        border: 'none',
+        color: '#fff',
+        padding: '10px 20px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px'
+      },
+      playTitle: {
+        fontSize: '48px',
+        fontWeight: '800',
+        marginBottom: '40px',
+        textAlign: 'center',
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        textShadow: '0 0 40px rgba(255, 215, 0, 0.3)'
+      },
+      wheelContainer: {
+        position: 'relative',
+        width: '400px',
+        height: '400px',
+        marginBottom: '40px',
+        maxWidth: '90vw'
+      },
+      pointer: {
+        position: 'absolute',
+        top: '-20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 0,
+        height: 0,
+        borderLeft: '20px solid transparent',
+        borderRight: '20px solid transparent',
+        borderBottom: '40px solid #FFD700',
+        zIndex: 10,
+        filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))'
+      },
+      wheel: {
+        width: '100%',
+        height: '100%',
+        filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.4))'
+      },
+      spinButton: {
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        border: 'none',
+        color: '#000',
+        padding: '20px 60px',
+        borderRadius: '50px',
+        fontSize: '24px',
+        fontWeight: '800',
+        cursor: 'pointer',
+        boxShadow: '0 8px 30px rgba(255, 215, 0, 0.4)',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        textTransform: 'uppercase',
+        letterSpacing: '2px'
+      },
+      resultModal: {
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
+        animation: 'fadeIn 0.3s ease'
+      },
+      resultContent: {
+        backgroundColor: '#1a1a2e',
+        borderRadius: '24px',
+        padding: '48px',
+        textAlign: 'center',
+        maxWidth: '500px',
+        margin: '20px',
+        border: '2px solid #FFD700',
+        boxShadow: '0 0 60px rgba(255, 215, 0, 0.3)'
+      },
+      resultEmoji: {
+        fontSize: '80px',
+        marginBottom: '20px'
+      },
+      resultTitle: {
+        fontSize: '36px',
+        fontWeight: '800',
+        marginBottom: '16px',
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent'
+      },
+      resultMessage: {
+        fontSize: '18px',
+        color: '#ccc',
+        marginBottom: '32px',
+        lineHeight: 1.6
+      },
+      claimButton: {
+        display: 'inline-block',
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        color: '#000',
+        padding: '16px 48px',
+        borderRadius: '50px',
+        fontSize: '18px',
+        fontWeight: '700',
+        textDecoration: 'none',
+        marginBottom: '16px',
+        boxShadow: '0 4px 20px rgba(255, 215, 0, 0.4)',
+        transition: 'transform 0.2s',
+        border: 'none',
+        cursor: 'pointer'
+      },
+      spinAgainButton: {
+        display: 'block',
+        width: '100%',
+        background: 'none',
+        border: '2px solid #444',
+        color: '#888',
+        padding: '14px 32px',
+        borderRadius: '50px',
+        fontSize: '16px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        marginTop: '16px',
+        transition: 'all 0.2s'
+      },
+      confettiContainer: {
+        position: 'fixed',
+        inset: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+        zIndex: 50
+      },
+      confettiPiece: {
+        position: 'absolute',
+        top: '-20px',
+        borderRadius: '2px',
+        animation: 'confettiFall 3s ease-out forwards'
+      },
+      errorContainer: {
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#0f0f1a',
+        color: '#fff',
+        fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif"
+      }
+    };
+
+    // Add responsive styles for mobile
+    if (window.innerWidth < 900) {
+      styles.editorContent.gridTemplateColumns = '1fr';
+      styles.editorSidebar.borderRight = 'none';
+      styles.editorSidebar.borderBottom = '1px solid #2a2a4e';
+      styles.previewPanel.borderLeft = 'none';
+      styles.previewPanel.borderTop = '1px solid #2a2a4e';
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<SpinWheelAdmin />);
+  </script>
+</body>
+</html>

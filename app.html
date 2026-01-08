@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wheels - SpinToWin</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/wheel.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="index.html" class="logo">SpinToWin</a>
+      <nav class="nav">
+        <span id="user-name" class="user-name"></span>
+        <button id="signout-btn" class="btn btn-secondary">Sign Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div class="container">
+      <div class="dashboard-header">
+        <h1>My Wheels</h1>
+        <button id="create-wheel-btn" class="btn btn-primary">+ Create Wheel</button>
+      </div>
+
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Loading your wheels...</p>
+      </div>
+
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-icon">O</div>
+        <h2>No wheels yet</h2>
+        <p>Create your first spin wheel to get started!</p>
+        <button id="create-first-btn" class="btn btn-primary btn-large">Create Your First Wheel</button>
+      </div>
+
+      <div id="wheels-grid" class="wheels-grid hidden"></div>
+    </div>
+  </main>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2>Delete Wheel?</h2>
+      <p>Are you sure you want to delete "<span id="delete-wheel-name"></span>"? This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button id="cancel-delete" class="btn btn-secondary">Cancel</button>
+        <button id="confirm-delete" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+  <script src="js/config/firebase-config.js"></script>
+  <script src="js/services/auth-service.js"></script>
+  <script src="js/services/wheel-service.js"></script>
+  <script src="js/components/wheel-canvas.js"></script>
+  <script src="js/components/toast.js"></script>
+  <script src="js/pages/dashboard.js"></script>
+</body>
+</html>

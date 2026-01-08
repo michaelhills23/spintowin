@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpinToWin - Create Custom Spin Wheels</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/wheel.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="index.html" class="logo">SpinToWin</a>
+      <nav class="nav">
+        <a href="login.html" class="btn btn-secondary">Sign In</a>
+        <a href="login.html?signup=true" class="btn btn-primary">Get Started</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-content">
+        <div class="hero-text">
+          <h1>Create Custom Spin Wheels</h1>
+          <p>Build interactive spin wheels for decisions, giveaways, games, and more. Share them with anyone, track analytics, and have fun!</p>
+          <div class="hero-buttons">
+            <a href="login.html?signup=true" class="btn btn-primary btn-large">Create Your Wheel</a>
+            <button id="demo-spin-btn" class="btn btn-secondary btn-large">Try Demo</button>
+          </div>
+        </div>
+        <div class="hero-wheel">
+          <canvas id="demo-wheel" width="400" height="400"></canvas>
+          <button id="hero-spin-btn" class="spin-button">SPIN</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="container">
+        <h2>Everything You Need</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">+</div>
+            <h3>Easy Creation</h3>
+            <p>Add unlimited segments with custom colors, labels, and weights. Drag to reorder.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">@</div>
+            <h3>Share Anywhere</h3>
+            <p>Generate shareable links. Anyone can spin your wheel without signing up.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">#</div>
+            <h3>Track Results</h3>
+            <p>See spin history, result distribution, and analytics for each wheel.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">*</div>
+            <h3>Free Forever</h3>
+            <p>Create unlimited wheels. No ads, no premium tiers, completely free.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>SpinToWin - Make decisions fun</p>
+    </div>
+  </footer>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+  <script src="js/config/firebase-config.js"></script>
+  <script src="js/components/wheel-canvas.js"></script>
+  <script src="js/components/wheel-spinner.js"></script>
+
+  <script>
+    // Demo wheel on landing page
+    document.addEventListener('DOMContentLoaded', () => {
+      const demoSegments = [
+        { id: '1', label: 'Pizza', color: '#FF6384', weight: 1 },
+        { id: '2', label: 'Tacos', color: '#36A2EB', weight: 1 },
+        { id: '3', label: 'Sushi', color: '#FFCE56', weight: 1 },
+        { id: '4', label: 'Burger', color: '#4BC0C0', weight: 1 },
+        { id: '5', label: 'Salad', color: '#9966FF', weight: 1 },
+        { id: '6', label: 'Pasta', color: '#FF9F40', weight: 1 }
+      ];
+
+      const canvas = document.getElementById('demo-wheel');
+      if (canvas) {
+        const wheelCanvas = new WheelCanvas(canvas, { size: 400 });
+        wheelCanvas.setSegments(demoSegments);
+        wheelCanvas.render();
+
+        const spinner = new WheelSpinner(wheelCanvas);
+
+        const spinBtn = document.getElementById('hero-spin-btn');
+        const demoBtn = document.getElementById('demo-spin-btn');
+
+        const doSpin = async () => {
+          if (spinner.isSpinning) return;
+          spinBtn.disabled = true;
+          spinBtn.textContent = '...';
+
+          const result = await spinner.spin();
+
+          spinBtn.disabled = false;
+          spinBtn.textContent = 'SPIN';
+
+          // Brief highlight of result
+          setTimeout(() => {
+            alert(`Result: ${result.segment.label}!`);
+          }, 100);
+        };
+
+        spinBtn.addEventListener('click', doSpin);
+        demoBtn.addEventListener('click', doSpin);
+      }
+
+      // Check if user is logged in, update nav
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().onAuthStateChanged(user => {
+          if (user) {
+            document.querySelector('.nav').innerHTML = `
+              <a href="app.html" class="btn btn-primary">My Wheels</a>
+            `;
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

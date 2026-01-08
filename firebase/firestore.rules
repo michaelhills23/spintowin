@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Get wheel document
+    function getWheel(wheelId) {
+      return get(/databases/$(database)/documents/wheels/$(wheelId));
+    }
+
+    // Check if wheel is publicly accessible
+    function isWheelAccessible(wheelId) {
+      let wheel = getWheel(wheelId);
+      return wheel.data.visibility in ['public', 'unlisted'];
+    }
+
+    // Check if user owns the wheel
+    function ownsWheel(wheelId) {
+      let wheel = getWheel(wheelId);
+      return isOwner(wheel.data.ownerId);
+    }
+
+    // ============================================
+    // USER DOCUMENTS
+    // ============================================
+
+    match /users/{userId} {
+      // Users can only read/write their own document
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasAll(['uid', 'email', 'createdAt'])
+        && request.resource.data.uid == userId;
+
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email;
+
+      allow delete: if false;
+    }
+
+    // ============================================
+    // WHEEL DOCUMENTS
+    // ============================================
+
+    match /wheels/{wheelId} {
+      // Read: owner always, others only if public/unlisted
+      allow read: if isOwner(resource.data.ownerId)
+        || resource.data.visibility in ['public', 'unlisted'];
+
+      // Create: authenticated users only
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.keys().hasAll(['name', 'segments', 'ownerId', 'visibility', 'createdAt'])
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.visibility in ['private', 'unlisted', 'public']
+        && request.resource.data.segments.size() >= 2;
+
+      // Update: owner only
+      allow update: if isOwner(resource.data.ownerId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      // Delete: owner only
+      allow delete: if isOwner(resource.data.ownerId);
+
+      // ----------------------------------------
+      // SPINS SUBCOLLECTION
+      // ----------------------------------------
+
+      match /spins/{spinId} {
+        // Anyone can read spins on accessible wheels
+        allow read: if ownsWheel(wheelId)
+          || isWheelAccessible(wheelId);
+
+        // Create spin: owner always, anonymous if wheel allows
+        allow create: if (
+          ownsWheel(wheelId)
+          || (isWheelAccessible(wheelId) && getWheel(wheelId).data.allowAnonymousSpins == true)
+        )
+        && request.resource.data.keys().hasAll(['wheelId', 'resultSegmentId', 'resultLabel', 'timestamp'])
+        && request.resource.data.wheelId == wheelId;
+
+        // Spins are immutable
+        allow update, delete: if false;
+      }
+
+      // ----------------------------------------
+      // ANALYTICS SUBCOLLECTION
+      // ----------------------------------------
+
+      match /analytics/{period} {
+        // Owner can read analytics
+        allow read: if ownsWheel(wheelId);
+
+        // Allow writes for tracking (simplified for client-side aggregation)
+        allow write: if ownsWheel(wheelId)
+          || (isWheelAccessible(wheelId) && getWheel(wheelId).data.allowAnonymousSpins == true);
+      }
+    }
+
+    // ============================================
+    // SHARE LINKS (optional tracking)
+    // ============================================
+
+    match /shareLinks/{code} {
+      // Anyone can read (to resolve short URLs)
+      allow read: if true;
+
+      // Only owner of the wheel can create/manage
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerId == request.auth.uid;
+
+      allow update, delete: if isOwner(resource.data.ownerId);
+    }
+  }
+}
