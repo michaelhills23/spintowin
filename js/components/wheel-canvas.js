@@ -69,24 +69,34 @@ class WheelCanvas {
     // Calculate total weight
     const totalWeight = this.segments.reduce((sum, seg) => sum + (seg.weight || 1), 0);
 
-    // The pointer is at the top (270 degrees or -PI/2)
-    // We need to find which segment is at the pointer
-    const pointerAngle = Math.PI * 1.5; // 270 degrees
+    // The pointer is at top (90 degrees or PI/2)
+    // Segments start drawing from top (-PI/2) going clockwise
+    // After rotation, we need to find which segment is now at the top
+    const pointerAngle = -Math.PI / 2; // Top position where pointer is
 
-    // Adjust for rotation - the wheel rotates clockwise
+    // Calculate the angle to check (accounting for wheel rotation)
+    // When wheel rotates clockwise by 'angle', segment that was at X is now at X + angle
+    // So to find what's at the pointer, we check what was at (pointer - angle)
     let checkAngle = pointerAngle - normalizedAngle;
-    if (checkAngle < 0) checkAngle += Math.PI * 2;
 
-    // Find segment at this angle
+    // Normalize to 0-2PI
+    while (checkAngle < 0) checkAngle += Math.PI * 2;
+    checkAngle = checkAngle % (Math.PI * 2);
+
+    // Convert to match our segment layout (starting at -PI/2)
+    let segmentAngle = checkAngle + Math.PI / 2;
+    if (segmentAngle >= Math.PI * 2) segmentAngle -= Math.PI * 2;
+
+    // Find which segment this angle falls into
     let currentAngle = 0;
     for (const segment of this.segments) {
       const segmentWeight = segment.weight || 1;
-      const segmentAngle = (segmentWeight / totalWeight) * Math.PI * 2;
+      const segmentSize = (segmentWeight / totalWeight) * Math.PI * 2;
 
-      if (checkAngle >= currentAngle && checkAngle < currentAngle + segmentAngle) {
+      if (segmentAngle >= currentAngle && segmentAngle < currentAngle + segmentSize) {
         return segment;
       }
-      currentAngle += segmentAngle;
+      currentAngle += segmentSize;
     }
 
     return this.segments[0];
